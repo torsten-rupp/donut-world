@@ -23,21 +23,23 @@ all: \
 
 .PHONY: clean
 clean:
-	rm -f color.o map.o mapGenerator.o
+	rm -f color.o mapGenerator.o islands.o
 	rm -f donut-world.o donut-world
 
 # ----------------------------------------------------------------------
 
 color.o: color.cpp color.h
 
-map.o: map.cpp map.h color.h
+#map.o: map.cpp map.h color.h
 
 mapGenerator.o: mapGenerator.cpp mapGenerator.h color.h
 
-donut-world.o: donut-world.cpp color.h map.h mapGenerator.h
+islands.o: islands.cpp islands.h
 
-donut-world: donut-world.o color.o map.o mapGenerator.o
-	$(LD) $(LDFLAGS) -o $@ donut-world.o color.o map.o mapGenerator.o $(LIBRARIES)
+donut-world.o: donut-world.cpp color.h mapGenerator.h islands.h
+
+donut-world: donut-world.o color.o mapGenerator.o islands.o
+	$(LD) $(LDFLAGS) -o $@ donut-world.o color.o mapGenerator.o islands.o $(LIBRARIES)
 
 # ----------------------------------------------------------------------
 .PHONY: run

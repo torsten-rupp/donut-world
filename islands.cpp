@@ -1,6 +1,6 @@
 /***********************************************************************\
 *
-* Contents: map functions
+* Contents: islands detector
 * Systems: all
 *
 \***********************************************************************/
@@ -13,18 +13,18 @@
 #include <vector>
 #include <array>
 #include <unordered_set>
+#include <unordered_map>
 #include <algorithm>
 #include <exception>
 #include <cassert>
 
-#include "map.h"
+#include "islands.h"
 
 /****************** Conditional compilation switches *******************/
 
 /***************************** Constants *******************************/
 
 /***************************** Datatypes *******************************/
-typedef unsigned int uint;
 
 /***************************** Variables *******************************/
 
@@ -33,6 +33,29 @@ typedef unsigned int uint;
 /***************************** Forwards ********************************/
 
 /***************************** Functions *******************************/
+
+Tile &Map::getTile(int x, int y)
+{
+  static Tile OFF_MAP_TILE = Tile(Tile::Types::WATER);
+
+  if ((y >= 0) && (static_cast<size_t>(y) < tiles.size()))
+  {
+    std::vector<Tile> &row = tiles[y];
+
+    if ((x >= 0) && (static_cast<size_t>(x) < row.size()))
+    {
+      return row[x];
+    }
+    else
+    {
+      return OFF_MAP_TILE;
+    }
+  }
+  else
+  {
+    return OFF_MAP_TILE;
+  }
+}
 
 void Map::load(const std::string &filePath)
 {
@@ -83,16 +106,23 @@ void Map::load(const std::string &filePath)
     }
     inputStream.close();
   }
-  else
-  {
-    std::stringstream buffer;
-    buffer << "cannot open file '" << filePath << "'";
-    throw std::ios_base::failure(buffer.str());
-  }
 }
 
 uint Map::findIslands()
 {
+  // neighbour offset
+  std::array<Coordinates, 8> NEIGHBORS =
+  {{
+    Coordinates{-1,-1},
+    Coordinates{ 0,-1},
+    Coordinates{+1,-1},
+    Coordinates{-1, 0},
+    Coordinates{+1, 0},
+    Coordinates{-1,+1},
+    Coordinates{ 0,+1},
+    Coordinates{+1,+1}
+  }};
+
   // init islands: everything which is not water
   for (std::vector<Tile> &row : tiles)
   {
@@ -100,7 +130,7 @@ uint Map::findIslands()
     {
       if (tile.getType() != Tile::Types::WATER)
       {
-        Island *island = new Island(tile);
+        Island *island = new Island(tile.getCoordinates());
         tile.setIsland(island);
 
         islands.insert(island);
@@ -127,35 +157,20 @@ uint Map::findIslands()
       Island *island = *iterator;
       assert(island != nullptr);
 
-      // merge connected neighbor islands into island
-      while (island->hasFrontiers())
+      // get next frontier coordinates
+      Coordinates coordinates = island->fetchFrontier();
+
+      // merge connected neighbor tiles into island
+      for (const Coordinates &neightbor : NEIGHBORS)
       {
-        // neighbour offset
-        static const std::array<Coordinates, 8> NEIGHBORS =
-        {{
-          Coordinates{-1,-1},
-          Coordinates{ 0,-1},
-          Coordinates{+1,-1},
-          Coordinates{-1, 0},
-          Coordinates{+1, 0},
-          Coordinates{-1,+1},
-          Coordinates{ 0,+1},
-          Coordinates{+1,+1}
-        }};
+        Tile &neighborTile = getTile(coordinates.x + neightbor.x, coordinates.y + neightbor.y);
 
-        Coordinates coordinates = island->fetchFrontier();
-
-        for (const Coordinates &neightbor : NEIGHBORS)
+        if (!neighborTile.isIsland(island) && (neighborTile.getType() != Tile::Types::WATER))
         {
-          Tile &neighborTile = getTile(coordinates.x + neightbor.x, coordinates.y + neightbor.y);
-
-          if (!neighborTile.isIsland(island) && (neighborTile.getType() != Tile::Types::WATER))
-          {
-            Island *neighborIsland = neighborTile.getIsland();
-            islands.erase(neighborIsland);
-            island->merge(neighborIsland);
-            delete(neighborIsland);
-          }
+          Island *neighborIsland = neighborTile.getIsland();
+          islands.erase(neighborIsland);
+          island->merge(neighborTile);
+          delete(neighborIsland);
         }
       }
     }
@@ -173,8 +188,6 @@ uint Map::findIslands()
   return islands.size();
 }
 
-/** print map with detected islands
- */
 void Map::printIslands() const
 {
   for (const std::vector<Tile> &row : tiles)
@@ -221,34 +234,6 @@ void Map::print() const
     }
     std::cout << std::endl;
   }
-}
-
-void Map::save(const std::string &filePath)
-{
-  FILE *handle;
-
-  handle = fopen("x.pnm", "w");
-
-  fprintf(handle, "P3\n");
-  fprintf(handle, "%d %d\n", width, height);
-  fprintf(handle, "255\n");
-
-  for (uint y = 0; y < height; y++)
-  {
-    for (uint x = 0; x < width; x++)
-    {
-// TODO:      fprintf(handle, "%d %d %d ", textureData[y][x].r, textureData[y][x].g, textureData[y][x].b);
-
-      if ((x % 10) == 0)
-      {
-        fprintf(handle, "\n");
-      }
-    }
-
-    fprintf(handle, "\n");
-  }
-
-  fclose(handle);
 }
 
 /* end of file */

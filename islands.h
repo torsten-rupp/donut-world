@@ -1,27 +1,30 @@
 /***********************************************************************\
 *
-* Contents: map functions
+* Contents: islands detector
 * Systems: all
 *
 \***********************************************************************/
-#ifndef MAP_H
-#define MAP_H
+#ifndef ISLANDS_H
+#define ISLANDS_H
 
 /****************************** Includes *******************************/
-#include <ostream>
+#include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
+#include <array>
 #include <unordered_set>
+#include <unordered_map>
+#include <algorithm>
+#include <exception>
 #include <cassert>
-
-#include "color.h"
 
 /****************** Conditional compilation switches *******************/
 
 /***************************** Constants *******************************/
 
 /***************************** Datatypes *******************************/
-typedef unsigned int uint;
 
 /***************************** Variables *******************************/
 
@@ -37,12 +40,6 @@ class Coordinates
 {
   public:
     int x,y;
-
-    Coordinates()
-      : x(0)
-      , y(0)
-    {
-    }
 
     Coordinates(int x, int y)
       : x(x)
@@ -88,14 +85,6 @@ class Tile
     {
     }
 
-    Tile(const Coordinates &coordinates, Types type, const Color &color)
-      : coordinates(coordinates)
-      , type(type)
-      , color(color)
-      , island(nullptr)
-    {
-    }
-
     Tile(const Coordinates &coordinates, Types type)
       : coordinates(coordinates)
       , type(type)
@@ -118,24 +107,6 @@ class Tile
     Types getType() const
     {
       return type;
-    }
-
-    Color getColor() const
-    {
-      return color;
-    }
-
-    void set(const Coordinates &coordinates, Types type, const Color &color)
-    {
-      this->coordinates = coordinates;
-      this->type        = type;
-      this->color       = color;
-    }
-
-    void set(const Coordinates &coordinates, Types type)
-    {
-      this->coordinates = coordinates;
-      this->type        = type;
     }
 
     Island *getIsland() const
@@ -182,10 +153,9 @@ class Tile
     }
 
   private:
-    Coordinates coordinates;
-    Types       type;
-    Color       color;
-    Island      *island;
+    const Coordinates coordinates;
+    Types             type;
+    Island            *island;
 };
 
 /** island
@@ -197,9 +167,8 @@ class Island
     {
     }
 
-    Island(Tile &tile)
-      : tiles({&tile})
-      , frontiers({tile.getCoordinates()})
+    Island(const Coordinates &coordinates)
+      : frontiers({coordinates})
     {
     }
 
@@ -221,8 +190,8 @@ class Island
       return frontiers.size() > 0;
     }
 
-    /** fetch and remove next frontier coordinates
-     * @return frontier coordinates
+    /** fetch and remove next frontier coordinate
+     * @return coordinates
      */
     Coordinates fetchFrontier()
     {
@@ -232,23 +201,13 @@ class Island
       return coordinates;
     }
 
-    /** merge island into island
-     * @param island island to merge
+    /** merge tile into island
+     * @param tile tile
      */
-    void merge(Island *island)
+    void merge(Tile &tile)
     {
-      assert(island != nullptr);
-
-      for (Tile *tile : island->tiles)
-      {
-        assert(tile != nullptr);
-        tile->setIsland(this);
-        tiles.push_back(tile);
-      }
-      for (const Coordinates &coordinates : island->frontiers)
-      {
-        frontiers.push_back(coordinates);
-      }
+      tile.setIsland(this);
+      frontiers.push_back(tile.getCoordinates());
     }
 
     friend std::ostream& operator<<(std::ostream &outputStream, const Island *island)
@@ -260,7 +219,6 @@ class Island
 
   private:
     char                     id;
-    std::vector<Tile*>       tiles;
     std::vector<Coordinates> frontiers;
 };
 
@@ -270,24 +228,7 @@ class Map
 {
   public:
     Map()
-      : width(0)
-      , height(0)
     {
-    }
-
-    Map(uint width, uint height)
-      : width(width)
-      , height(height)
-    {
-      for (uint y = 0; y < height; y++)
-      {
-        std::vector<Tile> row;
-        for (uint x = 0; x < height; x++)
-        {
-          row.push_back(Tile());
-        }
-        tiles.push_back(row);
-      }
     }
 
     virtual ~Map()
@@ -298,85 +239,17 @@ class Map
       }
     }
 
-    void reset()
-    {
-      tiles.clear();
-      for (uint y = 0; y < height; y++)
-      {
-        std::vector<Tile> row;
-        for (uint x = 0; x < height; x++)
-        {
-          row.push_back(Tile());
-        }
-        tiles.push_back(row);
-      }
-    }
-
-    uint getWidth() const
-    {
-      return width;
-    }
-
-    uint getHeight() const
-    {
-      return height;
-    }
-
-    Tile &getTile(int x, int y)
-    {
-      static Tile OFF_MAP_TILE = Tile(Tile::Types::WATER);
-
-      if ((y >= 0) && (static_cast<size_t>(y) < tiles.size()))
-      {
-        std::vector<Tile> &row = tiles[y];
-
-        if ((x >= 0) && (static_cast<size_t>(x) < row.size()))
-        {
-          return row[x];
-        }
-        else
-        {
-          return OFF_MAP_TILE;
-        }
-      }
-      else
-      {
-        return OFF_MAP_TILE;
-      }
-    }
-
-    void setTile(uint x, uint y, Tile::Types type, const Color &color)
-    {
-      assert(x < width);
-      assert(y < height);
-
-      tiles[y][x].set(Coordinates(x, y), type, color);
-    }
-
-    void setTile(uint x, uint y, Tile::Types type)
-    {
-      assert(x < width);
-      assert(y < height);
-
-      tiles[y][x].set(Coordinates(x, y), type);
-    }
+    Tile &getTile(int x, int y);
 
     void load(const std::string &filePath);
 
     uint findIslands();
-
-    std::unordered_set<Island*> &getIslands()
-    {
-      return islands;
-    }
 
     /** print map with detected islands
      */
     void printIslands() const;
 
     void print() const;
-
-    void save(const std::string &filePath);
 
     friend std::ostream& operator<<(std::ostream &outputStream, const Map &map)
     {
@@ -387,11 +260,10 @@ class Map
     }
 
   private:
-    uint                           width, height;
     std::vector<std::vector<Tile>> tiles;
     std::unordered_set<Island*>    islands;
 };
 
-#endif // MAP_H
+#endif // ISLANDS_H
 
 /* end of file */
