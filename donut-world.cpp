@@ -111,6 +111,7 @@ LOCAL bool                newMapFlag = FALSE;
 
 LOCAL GtkWidget           *buttonNewMap;
 LOCAL GtkWidget           *buttonCalculateIslands;
+LOCAL GtkWidget           *islandsText;
 LOCAL GtkWidget           *statusText;
 
 // ---------------------------------------------------------------------
@@ -284,95 +285,28 @@ LOCAL void createDonutWorld(std::vector<Vertex> &vertices)
 LOCAL void generateNewRandomMap()
 {
   #if (TEXTURE_TYPE == TEXTURE_TYPE_GENERATED)
-#if 0
-  MapTile *map = map_generate(TEXTURE_WIDTH, TEXTURE_HEIGHT, 600, 800);
+    Map map(TEXTURE_WIDTH, TEXTURE_HEIGHT);
 
-  #if 1
-  for (uint y = 0; y < TEXTURE_HEIGHT; y++)
-  {
-    for (uint x = 0; x < TEXTURE_WIDTH; x++)
+    MapGenerator::generate(map, 600, 800);
+    for (uint y = 0; y < TEXTURE_HEIGHT; y++)
     {
-      MapTile mapTile = mapGet(map, TEXTURE_WIDTH, TEXTURE_HEIGHT, x, y);
-
-      switch (mapTile.type)
+      for (uint x = 0; x < TEXTURE_WIDTH; x++)
       {
-        case W1:
-          textureData[y][x] = Color::interpolate(COLOR_WATER1, COLOR_WATER2, (double)rand() / RAND_MAX);
-          break;
+        Tile tile = map.getTile(x,y);
 
-        case W2:
-          textureData[y][x] = COLOR_WATER2;
-          break;
-
-        case L1:
-          textureData[y][x] = COLOR_LAND1;
-          break;
-
-        case L2:
-          textureData[y][x] = COLOR_LAND2;
-          break;
-
-        default:
-          textureData[y][x] = Color{mapTile.color.r, mapTile.color.g, mapTile.color.b};
-          break;
+        switch (tile.getType())
+        {
+          case Tile::Types::WATER:
+            textureData[y][x] = Color::interpolate(Color::WATER1, Color::WATER2, (double)rand() / RAND_MAX);
+            break;
+          case Tile::Types::LAND:
+            textureData[y][x] = Color::LAND1;
+            break;
+          default:
+            break;
+        }
       }
     }
-  }
-
-  #else
-
-  for (uint y = 0; y < TEXTURE_HEIGHT; y++)
-  {
-    for (uint x = 0; x < TEXTURE_WIDTH; x++)
-    {
-      if ((x == 0) || (y == 0))
-      {
-        textureData[y][x] = COLOR_LAND2;
-      }
-      else
-      {
-        textureData[y][x] = COLOR_WATER1;
-      }
-    }
-  }
-
-  #endif
-  free(map);
-#else
-  Map map(TEXTURE_WIDTH, TEXTURE_HEIGHT);
-
-  MapGenerator::generate(map, 600, 800);
-  for (uint y = 0; y < TEXTURE_HEIGHT; y++)
-  {
-    for (uint x = 0; x < TEXTURE_WIDTH; x++)
-    {
-      Tile tile = map.getTile(x,y);
-
-      switch (tile.getType())
-      {
-        case Tile::Types::WATER:
-          textureData[y][x] = Color::interpolate(Color::WATER1, Color::WATER2, (double)rand() / RAND_MAX);
-          break;
-
-//        case W2:
-//          textureData[y][x] = Color::WATER2;
-//          break;
-
-        case Tile::Types::LAND:
-          textureData[y][x] = Color::LAND1;
-          break;
-
-//        case L2:
-//          textureData[y][x] = COLOR_LAND2;
-//          break;
-
-        default:
-//          textureData[y][x] = Color{mapTile.color.r, mapTile.color.g, mapTile.color.b};
-          break;
-      }
-    }
-  }
-#endif
   #endif
 }
 
@@ -649,19 +583,31 @@ int main(int argc, char **argv)
           gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
         }
 
-        // buttons rights
+        // buttons right
         {
           GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, FALSE);
           assert(vbox != nullptr);
           gtk_box_set_spacing(GTK_BOX(vbox), 6);
           {
             buttonNewMap = gtk_button_new_with_label("New map");
-            gtk_box_pack_start(GTK_BOX(vbox), buttonNewMap, TRUE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(vbox), buttonNewMap, FALSE, FALSE, 0);
             g_signal_connect(buttonNewMap, "button-press-event", G_CALLBACK(onNewMap), NULL);
 
             buttonCalculateIslands = gtk_button_new_with_label("Calculate islands");
-            gtk_box_pack_start(GTK_BOX(vbox), buttonCalculateIslands, TRUE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(vbox), buttonCalculateIslands, FALSE, FALSE, 0);
             g_signal_connect(buttonCalculateIslands, "button-press-event", G_CALLBACK(onCalculateIslands), NULL);
+
+            GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, FALSE);
+            assert(hbox != nullptr);
+            gtk_box_set_spacing(GTK_BOX(hbox), 6);
+            {
+              GtkWidget *label = gtk_label_new("Islands:");
+              gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+
+              islandsText = gtk_label_new("");
+              gtk_box_pack_start(GTK_BOX(hbox), islandsText, FALSE, FALSE, 0);
+            }
+            gtk_box_pack_start(GTK_BOX(vbox), hbox, FALSE, FALSE, 0);
           }
           gtk_box_pack_start(GTK_BOX(hbox), vbox, FALSE, FALSE, 0);
         }

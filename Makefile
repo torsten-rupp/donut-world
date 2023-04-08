@@ -19,31 +19,31 @@ default: all
 
 .PHONY: all
 all: \
-  islands3d
+  donut-world
 
 .PHONY: clean
 clean:
 	rm -f color.o map.o mapGenerator.o
-	rm -f islands3d.o islands3d
+	rm -f donut-world.o donut-world
 
 # ----------------------------------------------------------------------
 
 color.o: color.cpp color.h
 
-mapGenerator.o: mapGenerator.cpp mapGenerator.h color.h
-
 map.o: map.cpp map.h color.h
 
-islands3d.o: islands3d.cpp color.h map.h mapGenerator.h
+mapGenerator.o: mapGenerator.cpp mapGenerator.h color.h
 
-islands3d: islands3d.o color.o map.o mapGenerator.o
-	$(LD) $(LDFLAGS) -o $@ islands3d.o color.o map.o mapGenerator.o $(LIBRARIES)
+donut-world.o: donut-world.cpp color.h map.h mapGenerator.h
+
+donut-world: donut-world.o color.o map.o mapGenerator.o
+	$(LD) $(LDFLAGS) -o $@ donut-world.o color.o map.o mapGenerator.o $(LIBRARIES)
 
 # ----------------------------------------------------------------------
 .PHONY: run
-run: islands3d
-	./islands3d
+run: donut-world
+	./donut-world
 
 .PHONY: check
-check:
-	valgrind --leak-check=full ./islands3d
+check: donut-world
+	valgrind --leak-check=full ./donut-world
