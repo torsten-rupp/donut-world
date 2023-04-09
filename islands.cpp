@@ -138,6 +138,11 @@ uint Map::findIslands()
   }};
 
   // init islands: everything which is not water
+  std::for_each(islands.begin(), islands.end(), [](const Island *island)
+  {
+    delete(island);
+  });
+  islands.clear();
   for (std::vector<Tile> &row : tiles)
   {
     for (Tile &tile : row)

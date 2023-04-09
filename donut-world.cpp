@@ -688,7 +688,7 @@ int main(int argc, char **argv)
                   );
 
   // start create initial map
-//  onNewMap(buttonNewMap, nullptr, nullptr);
+  onNewMap(buttonNewMap, nullptr, nullptr);
 
   // run
   gtk_widget_show_all(GTK_WIDGET(window));
