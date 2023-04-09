@@ -1,3 +1,7 @@
+# ----------------------------------------------------------------------
+# make file for Donut World
+# ----------------------------------------------------------------------
+
 CC = gcc
 CXX = g++
 CFLAGS = -g -Wall
@@ -14,6 +18,8 @@ LIBRARIES = `pkg-config --libs gtk+-3.0` \
 %.o: %.c
 	$(CC) $(CFLAGS) -c $*.c -o $@
 
+# ----------------------------------------------------------------------
+
 .PHONY: default
 default: all
 
@@ -25,6 +31,17 @@ all: \
 clean:
 	rm -f color.o mapGenerator.o islands.o
 	rm -f donut-world.o donut-world
+
+.PHONY: help
+help:
+	@echo "Help:"
+	@echo ""
+	@echo "make all"
+	@echo "make clean"
+	@echo ""
+	@echo "make run"
+	@echo "make rund"
+	@echo "make check"
 
 # ----------------------------------------------------------------------
 
