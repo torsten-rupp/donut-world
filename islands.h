@@ -248,12 +248,9 @@ class Island
 class Map
 {
   public:
-    Map()
-      : width(0)
-      , height(0)
-    {
-    }
-
+    /** create new map
+     * @oaram width, height map width+height
+     */
     Map(uint width, uint height)
       : width(width)
       , height(height)
@@ -269,6 +266,16 @@ class Map
       }
     }
 
+    /** create new map
+     */
+    Map()
+      : width(0)
+      , height(0)
+    {
+    }
+
+    /** destroy map
+     */
     virtual ~Map()
     {
       for (const Island *island : islands)
@@ -277,20 +284,37 @@ class Map
       }
     }
 
+    /** reset map content
+     */
     void reset();
 
+    /** get map width
+     * @return width
+     */
     uint getWidth() const
     {
       return width;
     }
 
+    /** get map height
+     * @return height
+     */
     uint getHeight() const
     {
       return height;
     }
 
+    /** get tile at x/y position
+     * @param x,y position
+     * @return tile
+     */
     Tile &getTile(int x, int y);
 
+    /** set tile at x/y posiiton
+     * @param x,y position
+     * @param type tile type
+     * @param color color
+     */
     void setTile(uint x, uint y, Tile::Types type, const Color &color)
     {
       assert(x < width);
@@ -299,6 +323,10 @@ class Map
       tiles[y][x].set(Coordinates(x, y), type, color);
     }
 
+    /** set tile at x/y posiiton
+     * @param x,y position
+     * @param type tile type
+     */
     void setTile(uint x, uint y, Tile::Types type)
     {
       assert(x < width);
@@ -307,16 +335,26 @@ class Map
       tiles[y][x].set(Coordinates(x, y), type);
     }
 
+    /** load map
+     * @oaram filePath file path
+     */
     void load(const std::string &filePath);
 
+    /** save map
+     * @oaram filePath file path
+     */
     void save(const std::string &filePath);
 
+    /** find islands
+     */
     uint findIslands();
 
     /** print map with detected islands
      */
     void printIslands() const;
 
+    /** print
+     */
     void print() const;
 
     friend std::ostream& operator<<(std::ostream &outputStream, const Map &map)

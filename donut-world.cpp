@@ -118,6 +118,11 @@ LOCAL GtkWidget           *statusBar;
 
 // ---------------------------------------------------------------------
 
+/** add triangle to vertices
+ * @param vertices vertices
+ * @param p0,p1,p2 triangle points
+ * @param uv0,uv1,uv2 triangle UV map points
+ */
 LOCAL void addTriangle(std::vector<Vertex> &vertices,
                        const glm::vec3     &p0,
                        const glm::vec3     &p1,
@@ -137,6 +142,11 @@ LOCAL void addTriangle(std::vector<Vertex> &vertices,
   vertices.push_back(Vertex{p2, c2, uv2});
 }
 
+/** add quad to vertices
+ * @param vertices vertices
+ * @param p0,p1,p2,p3 quad points
+ * @param uv0,uv1,uv2,uv3 quad UV map points
+ */
 LOCAL void addQuad(std::vector<Vertex> &vertices,
                    const glm::vec3     &p0,
                    const glm::vec3     &p1,
@@ -175,6 +185,12 @@ LOCAL void createCube(std::vector<Vertex> &vertices)
 }
 #endif
 
+/** create donut world segment
+ * @param segment segment
+ * @param maxSegmentCount max. segment count
+ * @param radius radius
+ * @param translateY translation along y-axis
+ */
 LOCAL void createDonutWorldSegment(glm::vec3 segment[], uint maxSegmentCount, float radius, float translateY)
 {
   // get circle segment
@@ -199,6 +215,9 @@ LOCAL void createDonutWorldSegment(glm::vec3 segment[], uint maxSegmentCount, fl
   }
 }
 
+/** create donut world
+ * @param vertices vertices
+ */
 LOCAL void createDonutWorld(std::vector<Vertex> &vertices)
 {
   glm::vec3 segment [STEPS1];
@@ -284,6 +303,8 @@ LOCAL void createDonutWorld(std::vector<Vertex> &vertices)
 
 // ---------------------------------------------------------------------
 
+/** generate new random map
+ */
 LOCAL void generateNewRandomMap()
 {
   #if (TEXTURE_TYPE == TEXTURE_TYPE_GENERATED)
@@ -310,6 +331,9 @@ LOCAL void generateNewRandomMap()
   #endif
 }
 
+/** callback on realize widgets
+ * @param widget widget
+ */
 LOCAL void onRealize(GtkWidget *widget)
 {
   GLint status;
@@ -423,6 +447,9 @@ LOCAL void onRealize(GtkWidget *widget)
   model = glm::rotate(glm::mat4(1.0), (float)(2 * M_PI / 8), glm::vec3(-1, 0, 0));
 }
 
+/** callback on unrealize widgets
+ * @param widget widget
+ */
 LOCAL void onUnrealize(GtkWidget *widget)
 {
   gtk_gl_area_make_current(GTK_GL_AREA(widget));
@@ -439,6 +466,10 @@ LOCAL void onUnrealize(GtkWidget *widget)
   glDeleteBuffers(1, &vertexBuffer);
 }
 
+/** redraw scene
+ * @param time time
+ * @param deltaTime deltaTime of last draw
+ */
 LOCAL void drawScene(ulong time, ulong deltaTime)
 {
   glUseProgram(program);
@@ -486,6 +517,10 @@ LOCAL void drawScene(ulong time, ulong deltaTime)
   glUseProgram(0);
 }
 
+/** callback on OpenGL render
+ * @param area OpenGL render area
+ * @param context OpenGL context
+ */
 LOCAL gboolean onRender(GtkGLArea    *area,
                         GdkGLContext *context
                        )
@@ -515,9 +550,20 @@ LOCAL gboolean onRender(GtkGLArea    *area,
   return TRUE;
 }
 
-LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer data)
+/** callback on new map
+ * @param widget widget
+ * @param eventButton event button
+ * @param userData user data
+ */
+LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer userData)
 {
-  gtk_widget_set_sensitive(GTK_WIDGET(widget), FALSE);
+  assert(widget != nullptr);
+
+  (void)widget;
+  (void)eventButton;
+  (void)userData;
+
+  gtk_widget_set_sensitive(GTK_WIDGET(buttonNewMap), FALSE);
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), 0, "Generate new map...");
 
   auto doneHandler = [](GObject      *sourceObject,
@@ -525,12 +571,14 @@ LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer dat
                         gpointer     userData
                        )
   {
-    GtkWidget *widget = GTK_WIDGET(sourceObject);
+    (void)sourceObject;
+    (void)result;
+    (void)userData;
 
     newMapFlag = TRUE;
 
     gtk_statusbar_pop(GTK_STATUSBAR(statusBar), 0);
-    gtk_widget_set_sensitive(widget, TRUE);
+    gtk_widget_set_sensitive(buttonNewMap, TRUE);
   };
   GTask *task = g_task_new(widget,nullptr,doneHandler,nullptr);
   assert(task != nullptr);
@@ -548,9 +596,20 @@ LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer dat
   g_object_unref(task);
 }
 
-LOCAL void onFindIslands(GtkWidget *widget)
+/** callback on find islands
+ * @param widget widget
+ * @param eventButton event button
+ * @param userData user data
+ */
+LOCAL void onFindIslands(GtkWidget *widget, GdkEventButton *eventButton, gpointer userData)
 {
-  gtk_widget_set_sensitive(GTK_WIDGET(widget), FALSE);
+  assert(widget != nullptr);
+
+  (void)widget;
+  (void)eventButton;
+  (void)userData;
+
+  gtk_widget_set_sensitive(GTK_WIDGET(buttonFindIslands), FALSE);
   gtk_statusbar_push(GTK_STATUSBAR(statusBar), 0, "Calculate islands...");
 
   auto doneHandler = [](GObject      *sourceObject,
@@ -558,10 +617,8 @@ LOCAL void onFindIslands(GtkWidget *widget)
                         gpointer     userData
                        )
   {
-    GtkWidget *widget = GTK_WIDGET(sourceObject);
-    assert(widget != nullptr);
-
     (void)sourceObject;
+    (void)userData;
 
     uint islandCount = static_cast<uint>(g_task_propagate_int(G_TASK(result), nullptr));
 
@@ -570,7 +627,7 @@ LOCAL void onFindIslands(GtkWidget *widget)
     gtk_label_set_text(GTK_LABEL(islandsText),buffer.str().c_str());
 
     gtk_statusbar_pop(GTK_STATUSBAR(statusBar), 0);
-    gtk_widget_set_sensitive(widget, TRUE);
+    gtk_widget_set_sensitive(buttonFindIslands, TRUE);
   };
   GTask *task = g_task_new(widget,nullptr,doneHandler,nullptr);
   assert(task != nullptr);

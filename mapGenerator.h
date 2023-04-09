@@ -31,6 +31,11 @@
 class MapGenerator
 {
   public:
+    /** generate map
+     * @param map map
+     * @param minContinents min. number of continents
+     * @param maxContinents max. number of continents
+     */
     static void generate(Map &map, uint minContinents, uint maxContinents);
 
   private:
