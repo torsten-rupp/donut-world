@@ -17,6 +17,7 @@
 
 #include "color.h"
 #include "mapGenerator.h"
+#include "islands.h"
 
 #define TEXTURE_TYPE_FIXED     1
 #define TEXTURE_TYPE_GENERATED 2
@@ -81,10 +82,6 @@ LOCAL const char *FRAGMENT_SHADER =
   "  fragment = texture2D(textureSampler, w);\n"
   "}\n";
 
-/* the GtkGLArea widget */
-LOCAL GtkWidget *glArea = NULL;
-LOCAL GDateTime *startDateTime = g_date_time_new_now_local();
-LOCAL GDateTime *lastDateTime;
 
 #if (TEXTURE_TYPE == TEXTURE_TYPE_GENERATED)
   #if 0
@@ -93,6 +90,10 @@ LOCAL GDateTime *lastDateTime;
     LOCAL std::array<std::array<Color, TEXTURE_WIDTH>, TEXTURE_HEIGHT> textureData;
   #endif
 #endif
+
+LOCAL GtkWidget          *area;
+LOCAL GDateTime          *startDateTime = g_date_time_new_now_local();
+LOCAL GDateTime          *lastDateTime;
 
 LOCAL std::vector<Vertex> vertices;
 
@@ -107,10 +108,11 @@ LOCAL glm::vec2           textureTranslate = { 0.0, 0.0 };
 
 LOCAL glm::mat4           model;
 
+LOCAL Map                 map(TEXTURE_WIDTH, TEXTURE_HEIGHT);
 LOCAL bool                newMapFlag = FALSE;
 
 LOCAL GtkWidget           *buttonNewMap;
-LOCAL GtkWidget           *buttonCalculateIslands;
+LOCAL GtkWidget           *buttonFindIslands;
 LOCAL GtkWidget           *islandsText;
 LOCAL GtkWidget           *statusText;
 
@@ -285,8 +287,6 @@ LOCAL void createDonutWorld(std::vector<Vertex> &vertices)
 LOCAL void generateNewRandomMap()
 {
   #if (TEXTURE_TYPE == TEXTURE_TYPE_GENERATED)
-    Map map(TEXTURE_WIDTH, TEXTURE_HEIGHT);
-
     MapGenerator::generate(map, 600, 800);
     for (uint y = 0; y < TEXTURE_HEIGHT; y++)
     {
@@ -520,27 +520,77 @@ LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer dat
   gtk_widget_set_sensitive(GTK_WIDGET(widget), FALSE);
   gtk_label_set_text(GTK_LABEL(statusText), "Generate new map...");
 
-  std::thread thread([widget]()
+  auto doneHandler = [](GObject      *sourceObject,
+                        GAsyncResult *result,
+                        gpointer     userData
+                       )
   {
-    generateNewRandomMap();
+    GtkWidget *widget = GTK_WIDGET(sourceObject);
+
     newMapFlag = TRUE;
 
     gtk_label_set_text(GTK_LABEL(statusText), "OK");
-    gtk_widget_set_sensitive(GTK_WIDGET(widget), TRUE);
-  });
-  thread.detach();
+    gtk_widget_set_sensitive(widget, TRUE);
+  };
+  GTask *task = g_task_new(widget,nullptr,doneHandler,nullptr);
+  assert(task != nullptr);
+
+  auto runHandler = [](GTask        *task,
+                       gpointer     sourceObject,
+                       gpointer     taskData,
+                       GCancellable *cancellable
+                      )
+  {
+    generateNewRandomMap();
+  };
+  g_task_run_in_thread(task,runHandler);
+
+  g_object_unref(task);
 }
 
-LOCAL void onCalculateIslands(GtkWidget *widget, GdkEventButton *eventButton, gpointer data)
+LOCAL void onFindIslands(GtkWidget *widget)
 {
   gtk_widget_set_sensitive(GTK_WIDGET(widget), FALSE);
+  gtk_label_set_text(GTK_LABEL(statusText), "Calculate islands...");
 
-  std::thread thread([widget]()
+  auto doneHandler = [](GObject      *sourceObject,
+                        GAsyncResult *result,
+                        gpointer     userData
+                       )
   {
-    fprintf(stderr, "%s:%d: _\n", __FILE__, __LINE__);
-    gtk_widget_set_sensitive(GTK_WIDGET(widget), TRUE);
-  });
-  thread.detach();
+    GtkWidget *widget = GTK_WIDGET(sourceObject);
+    assert(widget != nullptr);
+
+    (void)sourceObject;
+
+    uint islandCount = static_cast<uint>(g_task_propagate_int(G_TASK(result), nullptr));
+
+    std::stringstream buffer;
+    buffer << islandCount;
+    gtk_label_set_text(GTK_LABEL(islandsText),buffer.str().c_str());
+
+    gtk_label_set_text(GTK_LABEL(statusText), "OK");
+    gtk_widget_set_sensitive(widget, TRUE);
+  };
+  GTask *task = g_task_new(widget,nullptr,doneHandler,nullptr);
+  assert(task != nullptr);
+  g_task_set_task_data(task, nullptr, nullptr);
+
+  auto runHandler = [](GTask        *task,
+                       gpointer     sourceObject,
+                       gpointer     taskData,
+                       GCancellable *cancellable
+                      )
+  {
+    (void)sourceObject;
+    (void)taskData;
+    (void)cancellable;
+
+    g_task_return_int(task, map.findIslands());
+  };
+  g_task_run_in_thread(task,runHandler);
+
+  g_object_unref(task);
 }
 
 // ---------------------------------------------------------------------
@@ -561,6 +611,9 @@ int main(int argc, char **argv)
 
   {
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, FALSE);
+    assert(vbox != nullptr);
+
+    // view + buttons
     {
       GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, FALSE);
       assert(hbox != nullptr);
@@ -573,12 +626,12 @@ int main(int argc, char **argv)
           assert(vbox != nullptr);
           gtk_box_set_spacing(GTK_BOX(vbox), 6);
           {
-            glArea = gtk_gl_area_new();
-            gtk_widget_set_size_request(GTK_WIDGET(glArea), VIEW_WIDTH, VIEW_HEIGHT);
-            gtk_box_pack_start(GTK_BOX(vbox), glArea, 1, 1, 0);
-            g_signal_connect(glArea, "realize", G_CALLBACK(onRealize), NULL);
-            g_signal_connect(glArea, "unrealize", G_CALLBACK(onUnrealize), NULL);
-            g_signal_connect(glArea, "render", G_CALLBACK(onRender), NULL);
+            area = gtk_gl_area_new();
+            gtk_widget_set_size_request(GTK_WIDGET(area), VIEW_WIDTH, VIEW_HEIGHT);
+            gtk_box_pack_start(GTK_BOX(vbox), area, 1, 1, 0);
+            g_signal_connect(area, "realize", G_CALLBACK(onRealize), nullptr);
+            g_signal_connect(area, "unrealize", G_CALLBACK(onUnrealize), nullptr);
+            g_signal_connect(area, "render", G_CALLBACK(onRender), nullptr);
           }
           gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
         }
@@ -591,11 +644,11 @@ int main(int argc, char **argv)
           {
             buttonNewMap = gtk_button_new_with_label("New map");
             gtk_box_pack_start(GTK_BOX(vbox), buttonNewMap, FALSE, FALSE, 0);
-            g_signal_connect(buttonNewMap, "button-press-event", G_CALLBACK(onNewMap), NULL);
+            g_signal_connect(buttonNewMap, "button-press-event", G_CALLBACK(onNewMap), nullptr);
 
-            buttonCalculateIslands = gtk_button_new_with_label("Calculate islands");
-            gtk_box_pack_start(GTK_BOX(vbox), buttonCalculateIslands, FALSE, FALSE, 0);
-            g_signal_connect(buttonCalculateIslands, "button-press-event", G_CALLBACK(onCalculateIslands), NULL);
+            buttonFindIslands = gtk_button_new_with_label("Calculate islands");
+            gtk_box_pack_start(GTK_BOX(vbox), buttonFindIslands, FALSE, FALSE, 0);
+            g_signal_connect(buttonFindIslands, "button-press-event", G_CALLBACK(onFindIslands), nullptr);
 
             GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, FALSE);
             assert(hbox != nullptr);
@@ -614,13 +667,15 @@ int main(int argc, char **argv)
       }
       gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, FALSE, 0);
     }
+
     // status line
     {
       statusText = gtk_label_new(NULL);
       assert(statusText != nullptr);
+      gtk_label_set_justify(GTK_LABEL(statusText), GTK_JUSTIFY_LEFT);
       gtk_label_set_text(GTK_LABEL(statusText), "OK");
 
-      gtk_box_pack_start(GTK_BOX(vbox), statusText, FALSE, FALSE, 0);
+      gtk_box_pack_start(GTK_BOX(vbox), statusText, TRUE, TRUE, 0);
     }
 
     gtk_container_add(GTK_CONTAINER(window), vbox);

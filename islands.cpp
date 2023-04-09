@@ -34,6 +34,20 @@
 
 /***************************** Functions *******************************/
 
+void Map::reset()
+{
+  tiles.clear();
+  for (uint y = 0; y < height; y++)
+  {
+    std::vector<Tile> row;
+    for (uint x = 0; x < height; x++)
+    {
+      row.push_back(Tile());
+    }
+    tiles.push_back(row);
+  }
+}
+
 Tile &Map::getTile(int x, int y)
 {
   static Tile OFF_MAP_TILE = Tile(Tile::Types::WATER);

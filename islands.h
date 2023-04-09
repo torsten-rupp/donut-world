@@ -20,6 +20,8 @@
 #include <exception>
 #include <cassert>
 
+#include "color.h"
+
 /****************** Conditional compilation switches *******************/
 
 /***************************** Constants *******************************/
@@ -109,6 +111,24 @@ class Tile
       return type;
     }
 
+    Color getColor() const
+    {
+      return color;
+    }
+
+    void set(const Coordinates &coordinates, Types type, const Color &color)
+    {
+      this->coordinates = coordinates;
+      this->type        = type;
+      this->color       = color;
+    }
+
+    void set(const Coordinates &coordinates, Types type)
+    {
+      this->coordinates = coordinates;
+      this->type        = type;
+    }
+
     Island *getIsland() const
     {
       return island;
@@ -153,9 +173,10 @@ class Tile
     }
 
   private:
-    const Coordinates coordinates;
-    Types             type;
-    Island            *island;
+    Coordinates coordinates;
+    Types       type;
+    Color       color;
+    Island      *island;
 };
 
 /** island
@@ -228,7 +249,24 @@ class Map
 {
   public:
     Map()
+      : width(0)
+      , height(0)
     {
+    }
+
+    Map(uint width, uint height)
+      : width(width)
+      , height(height)
+    {
+      for (uint y = 0; y < height; y++)
+      {
+        std::vector<Tile> row;
+        for (uint x = 0; x < height; x++)
+        {
+          row.push_back(Tile());
+        }
+        tiles.push_back(row);
+      }
     }
 
     virtual ~Map()
@@ -239,9 +277,39 @@ class Map
       }
     }
 
+    void reset();
+
+    uint getWidth() const
+    {
+      return width;
+    }
+
+    uint getHeight() const
+    {
+      return height;
+    }
+
     Tile &getTile(int x, int y);
 
+    void setTile(uint x, uint y, Tile::Types type, const Color &color)
+    {
+      assert(x < width);
+      assert(y < height);
+
+      tiles[y][x].set(Coordinates(x, y), type, color);
+    }
+
+    void setTile(uint x, uint y, Tile::Types type)
+    {
+      assert(x < width);
+      assert(y < height);
+
+      tiles[y][x].set(Coordinates(x, y), type);
+    }
+
     void load(const std::string &filePath);
+
+    void save(const std::string &filePath);
 
     uint findIslands();
 
@@ -260,6 +328,7 @@ class Map
     }
 
   private:
+    uint                           width, height;
     std::vector<std::vector<Tile>> tiles;
     std::unordered_set<Island*>    islands;
 };

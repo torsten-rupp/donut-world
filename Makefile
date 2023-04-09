@@ -45,6 +45,9 @@ donut-world: donut-world.o color.o mapGenerator.o islands.o
 .PHONY: run
 run: donut-world
 	./donut-world
+.PHONY: rund
+rund: donut-world
+	gdb --args ./donut-world
 
 .PHONY: check
 check: donut-world

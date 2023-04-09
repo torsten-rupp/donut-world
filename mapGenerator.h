@@ -12,8 +12,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "map.h"
-
+#include "islands.h"
 
 /****************** Conditional compilation switches *******************/
 
