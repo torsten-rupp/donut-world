@@ -350,9 +350,9 @@ LOCAL void onRealize(GtkWidget *widget)
   (void)context;
 
   #if 1
-  createDonutWorld(vertices);
+    createDonutWorld(vertices);
   #else
-  createCube(vertices);
+    createCube(vertices);
   #endif
 
   // init texture
@@ -370,9 +370,9 @@ LOCAL void onRealize(GtkWidget *widget)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   #if (TEXTURE_TYPE == TEXTURE_TYPE_GENERATED)
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, textureData.data());
   #else
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, TEXTURE_DATA);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEXTURE_WIDTH, TEXTURE_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, TEXTURE_DATA);
   #endif
 
   // init vertex buffer
@@ -650,6 +650,54 @@ LOCAL void onFindIslands(GtkWidget *widget, GdkEventButton *eventButton, gpointe
   g_object_unref(task);
 }
 
+/** create intial map
+ * @param window top level window
+ */
+LOCAL void initialMap(GtkWidget *window)
+{
+  gtk_widget_set_sensitive(GTK_WIDGET(buttonNewMap), FALSE);
+  gtk_statusbar_push(GTK_STATUSBAR(statusBar), 0, "Generate initial map...");
+
+  GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+                                             GTK_DIALOG_DESTROY_WITH_PARENT,
+                                             GTK_MESSAGE_INFO,
+                                             GTK_BUTTONS_NONE,
+                                             "Generate initial map..."
+                                            );
+  gtk_widget_show(dialog);
+
+  auto doneHandler = [](GObject      *sourceObject,
+                        GAsyncResult *result,
+                        gpointer     userData
+                       )
+  {
+    GtkWidget *dialog = GTK_WIDGET(sourceObject);
+
+    (void)result;
+    (void)userData;
+
+    newMapFlag = TRUE;
+
+    gtk_widget_destroy(dialog);
+    gtk_statusbar_pop(GTK_STATUSBAR(statusBar), 0);
+    gtk_widget_set_sensitive(buttonNewMap, TRUE);
+  };
+  GTask *task = g_task_new(dialog,nullptr,doneHandler,nullptr);
+  assert(task != nullptr);
+
+  auto runHandler = [](GTask        *task,
+                       gpointer     sourceObject,
+                       gpointer     taskData,
+                       GCancellable *cancellable
+                      )
+  {
+    generateNewRandomMap();
+  };
+  g_task_run_in_thread(task,runHandler);
+
+  g_object_unref(task);
+}
+
 // ---------------------------------------------------------------------
 
 int main(int argc, char **argv)
@@ -744,11 +792,12 @@ int main(int argc, char **argv)
                    NULL
                   );
 
-  // start create initial map
-  onNewMap(buttonNewMap, nullptr, nullptr);
+  gtk_widget_show_all(GTK_WIDGET(window));
+
+  // create initial map
+  initialMap(window);
 
   // run
-  gtk_widget_show_all(GTK_WIDGET(window));
   gtk_main();
 
   return 0;
