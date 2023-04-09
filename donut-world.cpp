@@ -114,7 +114,7 @@ LOCAL bool                newMapFlag = FALSE;
 LOCAL GtkWidget           *buttonNewMap;
 LOCAL GtkWidget           *buttonFindIslands;
 LOCAL GtkWidget           *islandsText;
-LOCAL GtkWidget           *statusText;
+LOCAL GtkWidget           *statusBar;
 
 // ---------------------------------------------------------------------
 
@@ -518,7 +518,7 @@ LOCAL gboolean onRender(GtkGLArea    *area,
 LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer data)
 {
   gtk_widget_set_sensitive(GTK_WIDGET(widget), FALSE);
-  gtk_label_set_text(GTK_LABEL(statusText), "Generate new map...");
+  gtk_statusbar_push(GTK_STATUSBAR(statusBar), 0, "Generate new map...");
 
   auto doneHandler = [](GObject      *sourceObject,
                         GAsyncResult *result,
@@ -529,7 +529,7 @@ LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer dat
 
     newMapFlag = TRUE;
 
-    gtk_label_set_text(GTK_LABEL(statusText), "OK");
+    gtk_statusbar_pop(GTK_STATUSBAR(statusBar), 0);
     gtk_widget_set_sensitive(widget, TRUE);
   };
   GTask *task = g_task_new(widget,nullptr,doneHandler,nullptr);
@@ -551,7 +551,7 @@ LOCAL void onNewMap(GtkWidget *widget, GdkEventButton *eventButton, gpointer dat
 LOCAL void onFindIslands(GtkWidget *widget)
 {
   gtk_widget_set_sensitive(GTK_WIDGET(widget), FALSE);
-  gtk_label_set_text(GTK_LABEL(statusText), "Calculate islands...");
+  gtk_statusbar_push(GTK_STATUSBAR(statusBar), 0, "Calculate islands...");
 
   auto doneHandler = [](GObject      *sourceObject,
                         GAsyncResult *result,
@@ -569,7 +569,7 @@ LOCAL void onFindIslands(GtkWidget *widget)
     buffer << islandCount;
     gtk_label_set_text(GTK_LABEL(islandsText),buffer.str().c_str());
 
-    gtk_label_set_text(GTK_LABEL(statusText), "OK");
+    gtk_statusbar_pop(GTK_STATUSBAR(statusBar), 0);
     gtk_widget_set_sensitive(widget, TRUE);
   };
   GTask *task = g_task_new(widget,nullptr,doneHandler,nullptr);
@@ -670,12 +670,11 @@ int main(int argc, char **argv)
 
     // status line
     {
-      statusText = gtk_label_new(NULL);
-      assert(statusText != nullptr);
-      gtk_label_set_justify(GTK_LABEL(statusText), GTK_JUSTIFY_LEFT);
-      gtk_label_set_text(GTK_LABEL(statusText), "OK");
+      statusBar = gtk_statusbar_new();
+      assert(statusBar != nullptr);
+      gtk_statusbar_push(GTK_STATUSBAR(statusBar), 0, "OK");
 
-      gtk_box_pack_start(GTK_BOX(vbox), statusText, TRUE, TRUE, 0);
+      gtk_box_pack_start(GTK_BOX(vbox), statusBar, TRUE, TRUE, 0);
     }
 
     gtk_container_add(GTK_CONTAINER(window), vbox);
@@ -689,7 +688,7 @@ int main(int argc, char **argv)
                   );
 
   // start create initial map
-  onNewMap(buttonNewMap, nullptr, nullptr);
+//  onNewMap(buttonNewMap, nullptr, nullptr);
 
   // run
   gtk_widget_show_all(GTK_WIDGET(window));
