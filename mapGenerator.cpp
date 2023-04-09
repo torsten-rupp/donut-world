@@ -139,7 +139,6 @@ LOCAL inline bool mapIs(const GeneratorTile *generatorMap, uint mapWidth, uint m
 
 LOCAL void gen_stretched_hexagon(GeneratorTile *generatorMap, uint mapWidth, uint mapHeight, int water_or_land, int distortion) // generates a stretched out hexagon
 {
-
   // a value of 80 is a good distortion value
   // variables for a stretched hexagon
 
@@ -190,7 +189,7 @@ LOCAL void gen_stretched_hexagon(GeneratorTile *generatorMap, uint mapWidth, uin
   uint left_l_tri_skew; // lower triangle skew
   uint right_l_tri_skew;
 
-  uint y_len; // an alternative if the lower triangle overflows
+  uint y_len = 0; // an alternative if the lower triangle overflows
 
 //  skew1 = (rand() % 13);
 //  skew2 = (rand() % 13);
