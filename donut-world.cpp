@@ -1,3 +1,11 @@
+/***********************************************************************\
+*
+* Contents: Donut World
+* Systems: Linux
+*
+\***********************************************************************/
+
+/****************************** Includes *******************************/
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
@@ -19,13 +27,15 @@
 #include "mapGenerator.h"
 #include "islands.h"
 
+/****************** Conditional compilation switches *******************/
+
+/***************************** Constants *******************************/
+#define LOCAL static
+
 #define TEXTURE_TYPE_FIXED     1
 #define TEXTURE_TYPE_GENERATED 2
 //#define TEXTURE_TYPE TEXTURE_TYPE_FIXED
 #define TEXTURE_TYPE TEXTURE_TYPE_GENERATED
-
-
-#define LOCAL static
 
 #if (TEXTURE_TYPE == TEXTURE_TYPE_GENERATED)
   // map texture
@@ -36,21 +46,14 @@
 #endif
 
 // OpenGL view size
-const uint VIEW_WIDTH  = 800;
-const uint VIEW_HEIGHT = 600;
+LOCAL const uint VIEW_WIDTH  = 800;
+LOCAL const uint VIEW_HEIGHT = 600;
 
 // donut faces+size
-const uint STEPS1 = 18 * 2;
-const uint STEPS2 = 24 * 2;
-const float R1 = 0.3;
-const float R2 = 0.6;
-
-typedef struct
-{
-  glm::vec3 position;
-  glm::vec3 color;
-  glm::vec2 uv;
-} Vertex;
+LOCAL const uint STEPS1 = 18 * 2;
+LOCAL const uint STEPS2 = 24 * 2;
+LOCAL const float R1 = 0.3;
+LOCAL const float R2 = 0.6;
 
 LOCAL const char *VERTEX_SHADER =
   "#version 300 es\n"
@@ -82,7 +85,15 @@ LOCAL const char *FRAGMENT_SHADER =
   "  fragment = texture2D(textureSampler, w);\n"
   "}\n";
 
+/***************************** Datatypes *******************************/
+typedef struct
+{
+  glm::vec3 position;
+  glm::vec3 color;
+  glm::vec2 uv;
+} Vertex;
 
+/***************************** Variables *******************************/
 #if (TEXTURE_TYPE == TEXTURE_TYPE_GENERATED)
   #if 0
     LOCAL std::array<Color, TEXTURE_WIDTH *TEXTURE_HEIGHT> textureData;
@@ -91,9 +102,9 @@ LOCAL const char *FRAGMENT_SHADER =
   #endif
 #endif
 
-LOCAL GtkWidget          *area;
-LOCAL GDateTime          *startDateTime = g_date_time_new_now_local();
-LOCAL GDateTime          *lastDateTime;
+LOCAL GtkWidget           *area;
+LOCAL GDateTime           *startDateTime = g_date_time_new_now_local();
+LOCAL GDateTime           *lastDateTime;
 
 LOCAL std::vector<Vertex> vertices;
 
@@ -116,7 +127,11 @@ LOCAL GtkWidget           *buttonFindIslands;
 LOCAL GtkWidget           *islandsText;
 LOCAL GtkWidget           *statusBar;
 
-// ---------------------------------------------------------------------
+/****************************** Macros *********************************/
+
+/***************************** Forwards ********************************/
+
+/***************************** Functions *******************************/
 
 /** add triangle to vertices
  * @param vertices vertices
@@ -802,3 +817,5 @@ int main(int argc, char **argv)
 
   return 0;
 }
+
+/* end of file */
